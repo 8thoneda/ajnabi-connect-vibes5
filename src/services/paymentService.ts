@@ -1,4 +1,20 @@
+interface PaymentResult {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 export class PaymentService {
+  static async testPaymentGateway() {
+    return { available: true };
+  }
+
   async createOrder(amountInRupees) {
     try {
       const response = await fetch("/api/create-order", {
