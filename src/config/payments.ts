@@ -1,6 +1,7 @@
-// Razorpay configuration - using live keys
-export const RAZORPAY_KEY_ID = "rzp_live_4Ud6wv8v2YJvbw";
-export const RAZORPAY_SECRET_KEY = "yaVy8W6K83XK9IXPWGJYo88D";
+// Razorpay configuration - using test key
+export const RAZORPAY_KEY_ID = "rzp_test_WQBAQbslF30m1w";
+// IMPORTANT: RAZORPAY_SECRET_KEY should NEVER be in frontend code
+// It must be kept secure on your backend server for payment verification
 
 // Payment configuration
 export const PAYMENT_CONFIG = {
