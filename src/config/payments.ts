@@ -3,9 +3,6 @@ export const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test
 // IMPORTANT: RAZORPAY_SECRET_KEY should NEVER be in frontend code
 // It must be kept secure on your backend server for payment verification
 
-// Supabase Edge Function URL for payment operations
-export const PAYMENT_API_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/razorpay-api`;
-
 // Payment configuration
 export const PAYMENT_CONFIG = {
   currency: 'INR',
