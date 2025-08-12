@@ -1,15 +1,3 @@
-interface PaymentResult {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
-}
-
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
-
 export class PaymentService {
   static async testPaymentGateway() {
     return { available: true };
@@ -75,5 +63,12 @@ export class PaymentService {
     } catch (err) {
       console.error("Payment verification error:", err);
     }
+  }
+
+  // ✅ Added wrapper for Premium subscription
+  async subscribeToPremium() {
+    // Set your premium plan price here (in INR)
+    const premiumPrice = 299; // example ₹299
+    await this.initiatePayment(premiumPrice);
   }
 }
