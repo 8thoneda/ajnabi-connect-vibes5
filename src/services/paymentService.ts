@@ -1,4 +1,4 @@
-import { RAZORPAY_KEY_ID, PAYMENT_CONFIG, COIN_PACKAGES, PREMIUM_PLANS, UNLIMITED_CALLS_PLAN } from '@/config/payments';
+import { RAZORPAY_KEY_ID, PAYMENT_CONFIG, COIN_PACKAGES, PREMIUM_PLANS, UNLIMITED_CALLS_PLAN, PAYMENT_API_URL } from '@/config/payments';
 
 declare global {
   interface Window {
@@ -33,7 +33,10 @@ export class PaymentService {
 
   // Load Razorpay script with better error handling
   static async loadRazorpay(): Promise<boolean> {
+    console.log('Loading Razorpay script...');
+    
     if (this.isRazorpayLoaded) {
+      console.log('Razorpay already loaded');
       return true;
     }
 
@@ -45,6 +48,7 @@ export class PaymentService {
     this.loadingPromise = new Promise((resolve) => {
       // Check if Razorpay is already available
       if (window.Razorpay) {
+        console.log('Razorpay already available in window');
         this.isRazorpayLoaded = true;
         resolve(true);
         return;
@@ -64,7 +68,8 @@ export class PaymentService {
       
       script.onerror = (error) => {
         clearTimeout(timeout);
-        console.error('Failed to load Razorpay script:', error);
+        console.error('Failed to load Razorpay script from CDN:', error);
+        console.warn('This could be due to network issues, ad blockers, or CDN unavailability');
         this.isRazorpayLoaded = false;
         this.loadingPromise = null;
         script.remove();
@@ -73,7 +78,8 @@ export class PaymentService {
 
       // Timeout for script loading
       const timeout = setTimeout(() => {
-        console.error('Razorpay script loading timeout');
+        console.error('Razorpay script loading timeout (10s exceeded)');
+        console.warn('Check your internet connection or try again later');
         script.remove();
         this.isRazorpayLoaded = false;
         this.loadingPromise = null;
@@ -87,34 +93,50 @@ export class PaymentService {
   }
 
   // Create order on backend (simulated with better validation)
-  static async createOrder(amount: number, currency: string = 'INR', receipt?: string): Promise<{ orderId: string; amount: number; receipt: string }> {
+  static async createOrder(amount: number, currency: string = 'INR', receipt?: string, notes?: Record<string, string>): Promise<{ orderId: string; amount: number; receipt: string }> {
     try {
+      console.log('Creating order with amount:', amount);
+      
       // Validate amount
       if (amount <= 0 || amount > 100000) {
         throw new Error('Invalid payment amount');
       }
 
-      // Create order using Razorpay Orders API
-      const orderData = {
-        amount: amount * 100, // Convert to paise
-        currency: currency,
-        receipt: receipt || 'receipt_' + Date.now(),
-        payment_capture: 1
-      };
+      // Call Supabase Edge Function to create order
+      const response = await fetch(`${PAYMENT_API_URL}/create-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          amount,
+          currency,
+          receipt: receipt || 'receipt_' + Date.now(),
+          notes: notes || {}
+        })
+      });
 
-      // In production, this should be done on your backend server
-      // For now, we'll create a mock order ID that follows Razorpay format
-      const orderId = 'order_' + Date.now() + Math.random().toString(36).substr(2, 9);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to create order`);
+      }
+
+      const result = await response.json();
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create order');
+      }
+
+      console.log('Order created successfully:', result.orderId);
       
       return {
-        orderId,
-        amount,
-        receipt: orderData.receipt
+        orderId: result.orderId,
+        amount: amount * 100, // Convert to paise
+        receipt: result.receipt
       };
     } catch (error: any) {
+      console.error('Order creation error:', error);
       throw new Error(`Failed to create order: ${error.message}`);
     }
   }
@@ -147,13 +169,18 @@ export class PaymentService {
 
       console.log('Creating order...');
       // Create order
-      const order = await this.createOrder(options.amount, options.currency, 'receipt_' + Date.now());
+      const order = await this.createOrder(
+        options.amount, 
+        options.currency, 
+        'receipt_' + Date.now(),
+        options.notes
+      );
       console.log('Order created:', order);
 
       return new Promise((resolve) => {
         const razorpayOptions = {
           key: RAZORPAY_KEY_ID,
-          amount: options.amount * 100, // Convert to paise
+          amount: order.amount, // Already in paise from createOrder
           currency: options.currency || PAYMENT_CONFIG.currency,
           name: PAYMENT_CONFIG.company.name,
           description: options.description,
@@ -262,7 +289,7 @@ export class PaymentService {
 
   // Simulate payment for demo purposes (when Razorpay is not available)
   static async simulatePayment(options: PaymentOptions): Promise<PaymentResult> {
-    console.log('Using demo payment mode');
+    console.warn('Using demo payment mode - Razorpay not available');
     
     return new Promise((resolve) => {
       // Auto-approve demo payments for better UX in development
@@ -388,11 +415,12 @@ export class PaymentService {
         return { success: false, error: 'Missing payment parameters' };
       }
 
-      // Send verification request to backend
-      const response = await fetch('/api/verify-payment', {
+      // Send verification request to Supabase Edge Function
+      const response = await fetch(`${PAYMENT_API_URL}/verify-payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({
           razorpay_payment_id: paymentId,
@@ -410,7 +438,7 @@ export class PaymentService {
       console.log('Backend verification result:', result);
       
       return {
-        success: result.verified === true,
+        success: result.success === true && result.verified === true,
         error: result.verified ? undefined : (result.error || 'Payment verification failed')
       };
     } catch (error: any) {
@@ -418,13 +446,22 @@ export class PaymentService {
       
       // Fallback to client-side validation for demo purposes
       console.log('Falling back to client-side verification');
-      const clientVerification = await this.verifyPayment(paymentId, orderId, signature);
+      const clientVerification = this.isValidPaymentFormat(paymentId, orderId, signature);
       
       return {
         success: clientVerification,
         error: clientVerification ? undefined : 'Payment verification failed'
       };
     }
+  }
+
+  // Simple format validation for demo fallback
+  static isValidPaymentFormat(paymentId: string, orderId: string, signature: string): boolean {
+    return (
+      (paymentId.startsWith('pay_') || paymentId.startsWith('demo_pay_')) && 
+      (orderId.startsWith('order_') || orderId.startsWith('demo_order_')) && 
+      signature.length > 10
+    );
   }
 
   // Keep existing client-side verification as fallback
@@ -446,11 +483,7 @@ export class PaymentService {
       // 3. Backend returns verification result
       
       // For demo purposes, we'll validate the format and simulate success
-      const isValidFormat = 
-        (paymentId.startsWith('pay_') || paymentId.startsWith('demo_pay_')) && 
-        (orderId.startsWith('order_') || orderId.startsWith('demo_order_')) && 
-        signature.length > 10;
-
+      const isValidFormat = this.isValidPaymentFormat(paymentId, orderId, signature);
       console.log('Payment verification result:', isValidFormat);
       return isValidFormat;
     } catch (error) {
@@ -491,6 +524,7 @@ export class PaymentService {
   // Test payment gateway availability
   static async testPaymentGateway(): Promise<{ available: boolean; error?: string }> {
     try {
+      console.log('Testing payment gateway availability...');
       const isLoaded = await this.loadRazorpay();
       
       if (!isLoaded) {
@@ -505,6 +539,16 @@ export class PaymentService {
           available: false,
           error: 'Payment gateway failed to initialize.'
         };
+      }
+
+      // Test if we can reach the backend API
+      try {
+        const testResponse = await fetch(`${PAYMENT_API_URL}/health`, { method: 'GET' });
+        if (!testResponse.ok) {
+          console.warn('Backend API not reachable, payments will use fallback mode');
+        }
+      } catch (apiError) {
+        console.warn('Backend API test failed:', apiError);
       }
 
       return { available: true };
