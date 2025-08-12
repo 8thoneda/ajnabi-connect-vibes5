@@ -118,7 +118,53 @@ export default function HomeScreen({
           </div>
         </div>
 
-        {/* Main Action Buttons */}
+      
+
+        {/* Match Preferences */}
+        <Card className="shadow-card rounded-3xl border-0 bg-white/90 backdrop-blur-md">
+          <CardContent className="p-6">
+            <div className="text-center mb-6">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Filter className="w-5 h-5 text-primary" />
+                <h3 className="font-poppins text-lg font-bold text-gray-800">Match Preference</h3>
+              </div>
+              <p className="text-gray-600 font-poppins text-sm">
+                {isPremium ? "Choose who you want to meet" : "Upgrade to filter by gender"}
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-4 mb-6">
+              <PreferenceButton value="anyone" label="Everyone" emoji="🌟" />
+              <PreferenceButton value="men" label="Men" emoji="👨" />
+              <PreferenceButton value="women" label="Women" emoji="👩" />
+            </div>
+            
+            {!isPremium && (
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-2xl p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="p-2 bg-gradient-premium rounded-xl">
+                      <Crown className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold font-poppins text-purple-800">Unlock Gender Filters</p>
+                      <p className="text-xs text-purple-600 font-poppins">Choose exactly who you want to meet</p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={onRequestUpgrade} 
+                    size="sm"
+                    className="bg-gradient-premium text-white font-poppins rounded-xl shadow-warm hover:scale-105 transition-transform flex-shrink-0"
+                  >
+                    Upgrade
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+         {/* Main Action Buttons */}
         <div className="space-y-4">
           {/* Primary CTA - Start Matching */}
           <div className="relative">
@@ -175,51 +221,7 @@ export default function HomeScreen({
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 rounded-3xl blur-xl opacity-20 -z-10" />
           </div>
         </div>
-
-        {/* Match Preferences */}
-        <Card className="shadow-card rounded-3xl border-0 bg-white/90 backdrop-blur-md">
-          <CardContent className="p-6">
-            <div className="text-center mb-6">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Filter className="w-5 h-5 text-primary" />
-                <h3 className="font-poppins text-lg font-bold text-gray-800">Match Preference</h3>
-              </div>
-              <p className="text-gray-600 font-poppins text-sm">
-                {isPremium ? "Choose who you want to meet" : "Upgrade to filter by gender"}
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-4 mb-6">
-              <PreferenceButton value="anyone" label="Everyone" emoji="🌟" />
-              <PreferenceButton value="men" label="Men" emoji="👨" />
-              <PreferenceButton value="women" label="Women" emoji="👩" />
-            </div>
-            
-            {!isPremium && (
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-2xl p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="p-2 bg-gradient-premium rounded-xl">
-                      <Crown className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold font-poppins text-purple-800">Unlock Gender Filters</p>
-                      <p className="text-xs text-purple-600 font-poppins">Choose exactly who you want to meet</p>
-                    </div>
-                  </div>
-                  <Button 
-                    onClick={onRequestUpgrade} 
-                    size="sm"
-                    className="bg-gradient-premium text-white font-poppins rounded-xl shadow-warm hover:scale-105 transition-transform flex-shrink-0"
-                  >
-                    Upgrade
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
+        
         {/* Rewards & Streaks - Combined Card */}
         <Card className="shadow-card rounded-3xl border-0 bg-white/90 backdrop-blur-md">
           <CardContent className="p-6">
